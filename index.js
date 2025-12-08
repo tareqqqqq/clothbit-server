@@ -176,6 +176,16 @@ async function run() {
       res.send(result)
     })
 
+    // get all products for a manager by email
+    app.get('/my-product/:email', async (req, res) => {
+      const email = req.params.email
+
+      const result = await productCollection
+        .find({ 'seller.email': email })
+        .toArray()
+      res.send(result)
+    })
+
 
 
     // Send a ping to confirm a successful connection
