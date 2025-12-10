@@ -60,6 +60,7 @@ async function run() {
     const db=client.db('productDB')
     const productCollection=db.collection('products')
     const ordersCollection = db.collection('orders')
+     const usersCollection = db.collection('users')
 
 // save a product data in db
     app.post('/products',async (req,res)=>{
@@ -69,10 +70,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/products',async (req,res)=>{
-      const result= await productCollection.find().toArray()
-      res.send(result)
-    })
+    
     // get all products from db
     app.get('/products/:id', async (req, res) => {
       const id = req.params.id
@@ -181,11 +179,50 @@ async function run() {
       const email = req.params.email
 
       const result = await productCollection
-        .find({ 'seller.email': email })
+        .find({ 'manager.email': email })
         .toArray()
       res.send(result)
     })
 
+     // save or update a user in db
+    app.post('/user', async (req, res) => {
+      const userData = req.body
+      userData.created_at= new Date().toISOString()
+      userData.last_loggedIn= new Date().toISOString()
+
+      const query={
+        email:userData.email
+      }
+      const alreadyExists=await usersCollection.findOne(query)
+        if(alreadyExists){
+          const result= await usersCollection.updateOne(query,{$set:{
+            last_loggedIn:new Date().toISOString(),
+          }})
+          return res.send(result)
+        }
+      const result=await usersCollection.insertOne(userData)
+      res.send(result)
+    })
+    // get a user's role
+    app.get('/user/role/:email',  async (req, res) => {
+      const email=req.params.email
+      const result = await usersCollection.findOne({ email })
+      res.send({ role: result?.role })
+    })
+
+    // admin role
+    app.get('/products',async (req,res)=>{
+      const result= await productCollection.find().toArray()
+      res.send(result)
+    })
+    app.get('/orders',async (req,res)=>{
+      const result= await ordersCollection.find().toArray()
+      res.send(result)
+    })
+    app.get('/users',async (req,res)=>{
+      const result= await usersCollection.find().toArray()
+      res.send(result)
+    })
 
 
     // Send a ping to confirm a successful connection
