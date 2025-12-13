@@ -96,11 +96,12 @@ async function run() {
             quantity: paymentInfo?.quantity,
           },
         ],
-        customer_email: paymentInfo?.customer?.email,
+        customer_email: paymentInfo?.buyerEmail?.email,
         mode: 'payment',
         metadata: {
           productId: paymentInfo?.productId,
-          customer: paymentInfo?.customer.email,
+          customer: paymentInfo?.buyerEmail.email,
+          address: paymentInfo?.address,
         },
         success_url: `${process.env.CLIENT_DOMAIN}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_DOMAIN}/product/${paymentInfo?.productId}`,
@@ -130,6 +131,7 @@ async function run() {
           manager: product.manager,
           title: product.title,
           category: product.category,
+          address:session.metadata.address,
           quantity: 1,
           price: session.amount_total / 100,
           image: product?.images,
@@ -223,6 +225,50 @@ async function run() {
       const result= await usersCollection.find().toArray()
       res.send(result)
     })
+
+    // manager roles 
+    app.delete('/product/:id', async (req, res) => {
+  const id = req.params.id
+  const result = await productCollection.deleteOne({
+    _id: new ObjectId(id),
+  })
+  res.send(result)
+})
+
+app.put('/product/:id', async (req, res) => {
+  const id = req.params.id
+  const updatedProduct = req.body
+
+  const result = await productCollection.updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        title: updatedProduct.title,
+        description: updatedProduct.description,
+        category: updatedProduct.category,
+        price: updatedProduct.price,
+        quantity: updatedProduct.quantity,
+        moq: updatedProduct.moq,
+        images: updatedProduct.images,
+        video: updatedProduct.video,
+        payment: updatedProduct.payment,
+        showOnHome: updatedProduct.showOnHome,
+        updatedAt: new Date(),
+      },
+    }
+  )
+
+  res.send(result)
+})
+app.get('/orders/pending', async (req, res) => {
+  const orders = await ordersCollection.find({
+    status: 'pending',
+  }).toArray()
+
+  res.send(orders)
+})
+
+
 
 
     // Send a ping to confirm a successful connection
