@@ -267,6 +267,199 @@ app.get('/orders/pending', async (req, res) => {
 
   res.send(orders)
 })
+app.patch('/orders/approve/:id', async (req, res) => {
+  const id = req.params.id
+
+  const result = await ordersCollection.updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        status: 'approved',
+        approvedAt: new Date(),
+      },
+    }
+  )
+
+  res.send(result)
+})
+app.patch('/orders/reject/:id', async (req, res) => {
+  const id = req.params.id
+
+  const result = await ordersCollection.updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        status: 'rejected',
+      },
+    }
+  )
+
+  res.send(result)
+})
+app.get('/orders/approved', async (req, res) => {
+  const orders = await ordersCollection.find({
+    status: 'approved',
+  }).toArray()
+
+  res.send(orders)
+})
+app.patch('/orders/tracking/:id', async (req, res) => {
+  const id = req.params.id
+  const tracking = req.body
+
+  const result = await ordersCollection.updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $push: {
+        tracking: {
+          ...tracking,
+          time: new Date(),
+        },
+      },
+    }
+  )
+
+  res.send(result)
+})
+// PATCH /orders/cancel/:id
+app.patch('/orders/cancel/:id', async (req, res) => {
+  const id = req.params.id
+
+  // 1️⃣ Order খুঁজে বের করো
+  const order = await ordersCollection.findOne({
+    _id: new ObjectId(id)
+  })
+
+  if (!order) {
+    return res.status(404).send({ message: 'Order not found' })
+  }
+
+  // 2️⃣ Status check (Assignment rule)
+  if (order.status !== 'pending') {
+    return res
+      .status(400)
+      .send({ message: 'Cannot cancel this order' })
+  }
+
+  // 3️⃣ Status update
+  const result = await ordersCollection.updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: { status: 'Cancelled' }
+    }
+  )
+
+  res.send({
+    success: true,
+    modifiedCount: result.modifiedCount
+  })
+})
+// GET /orders/:id
+app.get('/orders/:id', async (req, res) => {
+  const id = req.params.id
+
+  const order = await ordersCollection.findOne({
+    _id: new ObjectId(id)
+  })
+
+  if (!order) {
+    return res.status(404).send({ message: 'Order not found' })
+  }
+
+  res.send(order)
+})
+
+// Update User Role
+app.patch('/users/role/:id', async (req, res) => {
+  try {
+    const { role } = req.body
+    const user = await usersCollection.findOne({ _id: new ObjectId(req.params.id) })
+
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' })
+    }
+
+    user.role = role
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { role: role } }
+    )
+
+    res.send({ success: true, message: 'User role updated successfully' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).send({ message: 'Server Error' })
+  }
+})
+
+// Suspend User
+app.patch('/users/suspend/:id', async (req, res) => {
+  try {
+    const user = await usersCollection.findOne({ _id: new ObjectId(req.params.id) })
+
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' })
+    }
+
+    user.status = 'Suspended'
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { status: 'Suspended' } }
+    )
+
+    res.send({ success: true, message: 'User suspended successfully' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).send({ message: 'Server Error' })
+  }
+})
+
+// Update,delete,hompage show product info by admin
+app.patch('/products/update/:id', async (req, res) => {
+  try {
+    const id = req.params.id
+    const updatedData = req.body
+
+    const result = await productCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          title: updatedData.title,
+          description: updatedData.description,
+          price: updatedData.price,
+          category: updatedData.category,
+          images: updatedData.images,
+          video: updatedData.video,
+          payment: updatedData.payment,
+          moq: updatedData.moq,
+        },
+      }
+    )
+    app.delete('/products/:id', async (req, res) => {
+  const result = await productCollection.deleteOne({
+    _id: new ObjectId(req.params.id),
+  })
+  res.send(result)
+})
+
+
+    res.send({ success: true, result })
+  } catch (error) {
+    console.error(error)
+    res.status(500).send({ message: 'Failed to update product' })
+  }
+})
+
+app.patch('/products/show-home/:id', async (req, res) => {
+  const { showOnHome } = req.body
+
+  const result = await productCollection.updateOne(
+    { _id: new ObjectId(req.params.id) },
+    { $set: { showOnHome } }
+  )
+
+  res.send(result)
+})
 
 
 
