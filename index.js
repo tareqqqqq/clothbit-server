@@ -61,8 +61,43 @@ async function run() {
     const productCollection=db.collection('products')
     const ordersCollection = db.collection('orders')
      const usersCollection = db.collection('users')
+// role middlewares
+    const verifyADMIN = async (req, res, next) => {
+      const email = req.tokenEmail
+      const user = await usersCollection.findOne({ email })
+      if (user?.role !== 'admin')
+        return res
+          .status(403)
+          .send({ message: 'Admin only Actions!', role: user?.role })
 
-// save a product data in db
+      next()
+    }
+    const verifySELLER = async (req, res, next) => {
+      const email = req.tokenEmail
+      const user = await usersCollection.findOne({ email })
+      if (user?.role !== 'manager')
+        return res
+          .status(403)
+          .send({ message: 'Manager only Actions!', role: user?.role })
+
+      next()
+    }
+
+
+
+
+
+app.get('/home-products', async (req, res) => {
+  const result = await productCollection
+    .find({ showOnHome: true })
+    .sort({ createdAt: -1 }) 
+    .limit(6)               
+    .toArray()
+
+  res.send(result)
+})
+
+// 11.save a product data in db by manager
     app.post('/products',async (req,res)=>{
       const productData=req.body
       console.log(productData)
