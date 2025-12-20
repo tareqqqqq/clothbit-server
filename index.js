@@ -97,6 +97,28 @@ app.get('/home-products', async (req, res) => {
   res.send(result)
 })
 
+// pagination 
+app.get('/product-pagination', async (req, res) => {
+  const page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 9
+  const skip = (page - 1) * limit
+
+  const totalProducts = await productCollection.countDocuments()
+  const products = await productCollection
+    .find()
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray()
+
+  res.send({
+    products,
+    totalPages: Math.ceil(totalProducts / limit),
+    currentPage: page
+  })
+})
+
+
 // 11.save a product data in db by manager
     app.post('/products',async (req,res)=>{
       const productData=req.body
@@ -112,6 +134,12 @@ app.get('/home-products', async (req, res) => {
       const result = await productCollection.findOne({ _id: new ObjectId(id) })
       res.send(result)
     })
+    // get all products from db
+    app.get('/all-orders/:id', async (req, res) => {
+      const id = req.params.id
+      const result = await ordersCollection.findOne({ _id: new ObjectId(id) })
+      res.send(result)
+    })
     // Payment endpoints
     app.post('/create-checkout-session', async (req, res) => {
       const paymentInfo = req.body
@@ -122,7 +150,7 @@ app.get('/home-products', async (req, res) => {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: paymentInfo?.title,
+              name: paymentInfo?.title,
                 description: paymentInfo?.description,
                 images:paymentInfo.images,
               },
@@ -131,16 +159,22 @@ app.get('/home-products', async (req, res) => {
             quantity: paymentInfo?.quantity,
           },
         ],
-        customer_email: paymentInfo?.buyerEmail?.email,
+        customer_email: paymentInfo?.buyerEmail,
         mode: 'payment',
         metadata: {
           productId: paymentInfo?.productId,
-          customer: paymentInfo?.buyerEmail.email,
+          buyer: paymentInfo?.buyerEmail,
           address: paymentInfo?.address,
+          phone:paymentInfo?.phone,
+          notes:paymentInfo?.notes,
+          name:paymentInfo?.buyerName,
+          payment:paymentInfo?.payment
         },
+        
         success_url: `${process.env.CLIENT_DOMAIN}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_DOMAIN}/product/${paymentInfo?.productId}`,
       })
+      
       res.send({ url: session.url })
     })
 
@@ -148,6 +182,7 @@ app.get('/home-products', async (req, res) => {
     app.post('/payment-success', async (req, res) => {
       const { sessionId } = req.body
       const session = await stripe.checkout.sessions.retrieve(sessionId)
+     
      
       const product = await productCollection.findOne({
         _id: new ObjectId(session.metadata.productId),
@@ -161,7 +196,12 @@ app.get('/home-products', async (req, res) => {
         const orderInfo = {
           productId: session.metadata.productId,
           transactionId: session.payment_intent,
-          customer: session.metadata.customer,
+          buyerEmail: session.metadata.buyer,
+           name: session.metadata.name,
+           phone: session.metadata.phone,
+           address: session.metadata.address,
+           payment: session.metadata.payment,
+           notes: session.metadata.notes,
           status: 'pending',
           manager: product.manager,
           title: product.title,
@@ -170,7 +210,9 @@ app.get('/home-products', async (req, res) => {
           quantity: 1,
           price: session.amount_total / 100,
           image: product?.images,
+          date:new Date()
         }
+        
         const result = await ordersCollection.insertOne(orderInfo)
         // update plant quantity
         await productCollection.updateOne(
@@ -193,11 +235,11 @@ app.get('/home-products', async (req, res) => {
       
     })
 
-     // get all orders for a customer by email
+     // get all orders for a buyer by email
     app.get('/my-orders/:email', async (req, res) => {
       const email = req.params.email
 
-      const result = await ordersCollection.find({ customer: email }).toArray()
+      const result = await ordersCollection.find({ buyerEmail: email }).toArray()
       res.send(result)
     })
 
@@ -269,6 +311,20 @@ app.get('/home-products', async (req, res) => {
   })
   res.send(result)
 })
+app.get('/product/:id', async (req, res) => {
+  const { id } = req.params
+
+  const product = await productCollection.findOne({
+    _id: new ObjectId(id),
+  })
+
+  if (!product) {
+    return res.status(404).send({ message: 'Product not found' })
+  }
+
+  res.send(product)
+})
+
 
 app.put('/product/:id', async (req, res) => {
   const id = req.params.id
@@ -325,6 +381,7 @@ app.patch('/orders/reject/:id', async (req, res) => {
     {
       $set: {
         status: 'rejected',
+        rejectedAt: new Date(),
       },
     }
   )
@@ -348,7 +405,7 @@ app.patch('/orders/tracking/:id', async (req, res) => {
       $push: {
         tracking: {
           ...tracking,
-          time: new Date(),
+          trackingDate: new Date(),
         },
       },
     }
@@ -360,7 +417,7 @@ app.patch('/orders/tracking/:id', async (req, res) => {
 app.patch('/orders/cancel/:id', async (req, res) => {
   const id = req.params.id
 
-  // 1️⃣ Order খুঁজে বের করো
+  
   const order = await ordersCollection.findOne({
     _id: new ObjectId(id)
   })
