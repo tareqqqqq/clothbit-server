@@ -485,26 +485,36 @@ app.patch('/users/role/:id', async (req, res) => {
 })
 
 // Suspend User
+// Suspend User with Feedback
 app.patch('/users/suspend/:id', async (req, res) => {
   try {
-    const user = await usersCollection.findOne({ _id: new ObjectId(req.params.id) })
+    const id = req.params.id;
+    const { status, feedback } = req.body; // Frontend theke status ar feedback nichi
 
-    if (!user) {
-      return res.status(404).send({ message: 'User not found' })
+    if (!feedback) {
+      return res.status(400).send({ message: 'Feedback is required for suspension' });
     }
 
-    user.status = 'Suspended'
-    await usersCollection.updateOne(
-      { _id: user._id },
-      { $set: { status: 'Suspended' } }
-    )
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+      $set: { 
+        status: status, // 'Suspended'
+        suspendFeedback: feedback // Feedback save kora hoche
+      }
+    };
 
-    res.send({ success: true, message: 'User suspended successfully' })
+    const result = await usersCollection.updateOne(filter, updateDoc);
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+
+    res.send({ success: true, message: 'User suspended successfully with feedback' });
   } catch (err) {
-    console.error(err)
-    res.status(500).send({ message: 'Server Error' })
+    console.error(err);
+    res.status(500).send({ message: 'Server Error' });
   }
-})
+});
 
 // Update,delete,hompage show product info by admin
 app.patch('/products/update/:id', async (req, res) => {
