@@ -576,6 +576,12 @@ app.get('/user-data/:email', async (req, res) => {
     res.status(500).send({ message: 'Error fetching user data' })
   }
 })
+app.get('/order/track/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const result = await ordersCollection.findOne(query);
+    res.send(result);
+});
 
 
 
