@@ -565,6 +565,20 @@ app.patch('/products/show-home/:id', async (req, res) => {
 
 
 
+// profile 
+// Get specific user data by email
+app.get('/user-data/:email', async (req, res) => {
+  try {
+    const email = req.params.email
+    const result = await usersCollection.findOne({ email: email })
+    res.send(result)
+  } catch (err) {
+    res.status(500).send({ message: 'Error fetching user data' })
+  }
+})
+
+
+
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })
