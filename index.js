@@ -299,7 +299,7 @@ app.get('/product-pagination', async (req, res) => {
       res.send(result)
     })
     app.get('/users',async (req,res)=>{
-      const result= await usersCollection.find().toArray()
+      const result= await usersCollection.find({ email: { $ne: adminEmail } }).toArray()
       res.send(result)
     })
 
@@ -587,10 +587,10 @@ app.get('/order/track/:id', async (req, res) => {
 
 
     // Send a ping to confirm a successful connection
-    await client.db('admin').command({ ping: 1 })
-    console.log(
-      'Pinged your deployment. You successfully connected to MongoDB!'
-    )
+    // await client.db('admin').command({ ping: 1 })
+    // console.log(
+    //   'Pinged your deployment. You successfully connected to MongoDB!'
+    // )
   } finally {
     // Ensures that the client will close when you finish/error
   }
