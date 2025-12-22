@@ -301,11 +301,9 @@ app.get('/product-pagination', async (req, res) => {
     app.get('/users', async (req, res) => {
   try {
    
-    const adminEmail = 'tareq@tareq.com'; 
     
-    const result = await usersCollection.find({ 
-      email: { $ne: adminEmail } 
-    }).toArray();
+    
+    const result = await usersCollection.find().toArray();
 
     res.send(result);
   } catch (error) {
