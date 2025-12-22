@@ -308,7 +308,7 @@ app.get('/product-pagination', async (req, res) => {
     res.send(result);
   } catch (error) {
     console.log(error)
-    res.status(500).send({ message: "Internal Server Error" });
+    res.status(500).send({ message: "Internal Server is Error" });
   }
 });
 
