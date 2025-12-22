@@ -298,10 +298,21 @@ app.get('/product-pagination', async (req, res) => {
       const result= await ordersCollection.find().toArray()
       res.send(result)
     })
-    app.get('/users',async (req,res)=>{
-      const result= await usersCollection.find({ email: { $ne: adminEmail } }).toArray()
-      res.send(result)
-    })
+    app.get('/users', async (req, res) => {
+  try {
+   
+    const adminEmail = 'tareq@tareq.com'; 
+    
+    const result = await usersCollection.find({ 
+      email: { $ne: adminEmail } 
+    }).toArray();
+
+    res.send(result);
+  } catch (error) {
+    console.log(error)
+    res.status(500).send({ message: "Internal Server Error" });
+  }
+});
 
     // manager roles 
     app.delete('/product/:id', async (req, res) => {
